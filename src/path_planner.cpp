@@ -21,7 +21,7 @@ void PathPlanner::Init( )
 {
   prev_size = 0;
   speed = 0.0;
-	current_lane = MiddleLane;
+  current_lane = MiddleLane;
 
   // Load Highway Map
   string line;
@@ -64,19 +64,19 @@ LANES_T PathPlanner::CalculateLane( const double d )
 
   if( d >= 0 && d < 4 ) 
   {
-	  calculated_lane = LeftLane;
+    calculated_lane = LeftLane;
   } 
   else if( d >= 4 && d < 8 ) 
   {
-	  calculated_lane = MiddleLane;
+    calculated_lane = MiddleLane;
   } 
   else if( d >= 8 && d <= 12 ) 
   {
-	  calculated_lane = RightLane;
+    calculated_lane = RightLane;
   } 
   else 
   {
-	  calculated_lane = UnknownLane;
+    calculated_lane = UnknownLane;
   }
 
   return calculated_lane;
@@ -166,7 +166,7 @@ double PathPlanner::RadToDeg( const double x )
 double PathPlanner::ComputeDistance( const double x1, const double y1,
                                      const double x2, const double y2)
 {
-	return sqrt( (x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1) );
+  return sqrt( (x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1) );
 }
 
 //=============================================================================
@@ -180,7 +180,7 @@ double PathPlanner::ComputeDistance( const double x1, const double y1,
 //=============================================================================
 vector<double> PathPlanner::FrenetToCartesian( double s, double d )
 {
-	int prev_wp = -1;
+  int prev_wp = -1;
 
   while( s > wp_s[prev_wp+1] && ( prev_wp < (int)( wp_s.size()-1 ) ) )
   {
@@ -279,7 +279,7 @@ void PathPlanner::Navigate( LANES_T &current_lane )
   
   for( int i = 0; i < sensor_fusion.size(); i++ ) 
   {
-  	float d = sensor_fusion[i][6];
+    float d = sensor_fusion[i][6];
 
     LANES_T calculated_lane = CalculateLane( d );
 
@@ -288,12 +288,12 @@ void PathPlanner::Navigate( LANES_T &current_lane )
       continue;
     }
   
-  	double vx = sensor_fusion[i][3];
-  	double vy = sensor_fusion[i][4];
-  	double check_speed = sqrt( vx*vx + vy*vy );
-  	double check_car_s = sensor_fusion[i][5];
-  
-  	check_car_s += ( (double)prev_size * 0.02 * check_speed );
+    double vx = sensor_fusion[i][3];
+    double vy = sensor_fusion[i][4];
+    double check_speed = sqrt( vx*vx + vy*vy );
+    double check_car_s = sensor_fusion[i][5];
+    
+    check_car_s += ( (double)prev_size * 0.02 * check_speed );
   
     ////////////////////////////////////////////////////////////////////////////
     //
@@ -310,23 +310,23 @@ void PathPlanner::Navigate( LANES_T &current_lane )
     //
     ////////////////////////////////////////////////////////////////////////////
   
-  	if( calculated_lane == current_lane ) 
+    if( calculated_lane == current_lane )
     {
   		collision_warning |= ( check_car_s > car_s ) && 
                            ( ( check_car_s - car_s ) < ALLOWED_DISTANCE );
-  	} 
+    } 
     else if( ( calculated_lane == RightLane && current_lane == MiddleLane ) ||
              ( calculated_lane == MiddleLane && current_lane == LeftLane ) )
     {
   		car_detected_on_right |= ( ( car_s - ALLOWED_DISTANCE ) < check_car_s ) && 
                                ( ( car_s + ALLOWED_DISTANCE ) > check_car_s );
-  	} 
+    } 
     else if( ( current_lane == MiddleLane && calculated_lane == LeftLane ) ||
              ( current_lane == RightLane && calculated_lane == MiddleLane ) ) 
     {
   		car_detected_on_left |= ( ( car_s - ALLOWED_DISTANCE ) < check_car_s ) && 
                               ( ( car_s + ALLOWED_DISTANCE)  > check_car_s );
-  	}
+    }
   }
   
   if( collision_warning ) 
@@ -351,35 +351,35 @@ void PathPlanner::Navigate( LANES_T &current_lane )
     if( ( car_detected_on_right == false ) && 
         ( ( current_lane == LeftLane ) || ( current_lane == MiddleLane ) ) ) 
     {
-  		ChangeLane( SHIFT_RIGHT, current_lane );
-  	} 
+      ChangeLane( SHIFT_RIGHT, current_lane );
+    } 
     else if( ( car_detected_on_left == false ) && 
              ( ( current_lane == MiddleLane ) || ( current_lane == RightLane ) ) )
     {
-  		ChangeLane( SHIFT_LEFT, current_lane );
-  	} 
+      ChangeLane( SHIFT_LEFT, current_lane );
+    } 
     else 
     {
-  		speed -= DEACCELERATION_RATE;
-      cout << "Collision Warning: Reducing speed " << speed << endl; 
-  	}
+      speed -= DEACCELERATION_RATE;
+      cout << "Collision Warning: Reducing speed " << speed << endl;
+    }
   } 
   else 
   {
-  	if( current_lane == RightLane && car_detected_on_left == false ) 
+    if( current_lane == RightLane && car_detected_on_left == false )
     {
-  	  ChangeLane( SHIFT_LEFT, current_lane );
-  	}
+      ChangeLane( SHIFT_LEFT, current_lane );
+    }
   
-    if( current_lane == LeftLane && car_detected_on_right == false ) 
+    if( current_lane == LeftLane && car_detected_on_right == false )
     {
-  	  ChangeLane( SHIFT_RIGHT, current_lane );
+      ChangeLane( SHIFT_RIGHT, current_lane );
     }
   	
-  	if( ( speed + ACCELERATION_RATE ) < SPEED_LIMIT ) 
+    if( ( speed + ACCELERATION_RATE ) < SPEED_LIMIT )
     {
-  		speed += ACCELERATION_RATE;
-  	}
+      speed += ACCELERATION_RATE;
+    }
   }
 }
 
