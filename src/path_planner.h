@@ -30,14 +30,14 @@ public:
   virtual ~PathPlanner();
  
   // Constant Defines
-	const double ACCELERATION_RATE = 0.224;
-	const double DEACCELERATION_RATE = ( ACCELERATION_RATE * 8 );
+  const double ACCELERATION_RATE = 0.224;
+  const double DEACCELERATION_RATE = ( ACCELERATION_RATE * 8 );
   const double SPEED_LIMIT = 49.5;
   const double ALLOWED_DISTANCE = 30.0;
-
+  
   int prev_size;
   double speed;
-	LANES_T current_lane;
+  LANES_T current_lane;
 
   // Waypoint Vectors
   vector<double> wp_x;
