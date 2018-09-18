@@ -15,7 +15,7 @@ This project implements a path planner that is able to create smooth, safe paths
 ## Build Instructions 
 1. Clone the Path Planner git repository
     ```  
-    $ git clone https://github.com/jfoshea/Path-Planner.git
+    $ git clone https://github.com/jfoshea/Path-Planning.git
     ```
 2. This project involves the Term 3 Simulator which can be downloaded here [link](https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2)
 
