@@ -312,20 +312,15 @@ void PathPlanner::Navigate( LANES_T &current_lane )
   
     if( calculated_lane == current_lane )
     {
-      collision_warning |= ( check_car_s > car_s ) && 
-                            ( ( check_car_s - car_s ) < ALLOWED_DISTANCE );
+      collision_warning |= ( check_car_s > car_s ) && ( ( check_car_s - car_s ) < ALLOWED_DISTANCE );
     } 
-    else if( ( calculated_lane == RightLane && current_lane == MiddleLane ) ||
-             ( calculated_lane == MiddleLane && current_lane == LeftLane ) )
+    else if( ( calculated_lane == RightLane && current_lane == MiddleLane ) || ( calculated_lane == MiddleLane && current_lane == LeftLane ) )
     {
-      car_detected_on_right |= ( ( car_s - ALLOWED_DISTANCE ) < check_car_s ) && 
-                              ( ( car_s + ALLOWED_DISTANCE ) > check_car_s );
+      car_detected_on_right |= ( ( car_s - ALLOWED_DISTANCE ) < check_car_s ) && ( ( car_s + ALLOWED_DISTANCE ) > check_car_s );
     } 
-    else if( ( current_lane == MiddleLane && calculated_lane == LeftLane ) ||
-             ( current_lane == RightLane && calculated_lane == MiddleLane ) ) 
+    else if( ( current_lane == MiddleLane && calculated_lane == LeftLane ) || ( current_lane == RightLane && calculated_lane == MiddleLane ) ) 
     {
-      car_detected_on_left |= ( ( car_s - ALLOWED_DISTANCE ) < check_car_s ) && 
-                              ( ( car_s + ALLOWED_DISTANCE)  > check_car_s );
+      car_detected_on_left |= ( ( car_s - ALLOWED_DISTANCE ) < check_car_s ) && ( ( car_s + ALLOWED_DISTANCE)  > check_car_s );
     }
   }
   
@@ -366,17 +361,7 @@ void PathPlanner::Navigate( LANES_T &current_lane )
   } 
   else 
   {
-    if( current_lane == RightLane && car_detected_on_left == false )
-    {
-      ChangeLane( SHIFT_LEFT, current_lane );
-    }
-  
-    if( current_lane == LeftLane && car_detected_on_right == false )
-    {
-      ChangeLane( SHIFT_RIGHT, current_lane );
-    }
-  	
-    if( ( speed + ACCELERATION_RATE ) < SPEED_LIMIT )
+    if( speed < SPEED_LIMIT )
     {
       speed += ACCELERATION_RATE;
     }
