@@ -4,6 +4,7 @@
 #include <vector>
 #include <fstream>
 #include <algorithm>
+#include <queue>
 #include "json.hpp"
 
 using namespace std;
@@ -34,10 +35,13 @@ public:
   const double DEACCELERATION_RATE = ( ACCELERATION_RATE * 8 );
   const double SPEED_LIMIT = 49.5;
   const double ALLOWED_DISTANCE = 30.0;
+  const double TIME_INCREMENT = 0.02;
+  const double T = 4.0;
   
   int prev_size;
   double speed;
   LANES_T current_lane;
+  queue<double> lane_changes;
 
   // Waypoint Vectors
   vector<double> wp_x;
@@ -62,11 +66,17 @@ public:
   // Initialize the Path Planner.
   void Init();
 
+  // Calculate the Jerk Minimizing Trajectory
+  vector<double> JMT(vector< double> start, vector <double> end, double T);
+
   // Calculate Lane based on Sensor Fusion Data.
   LANES_T CalculateLane( const double d );
 
+  // Calculate offset based on current lane
+  double CalculateLaneOffset( const LANES_T lane );
+
   // Change Lane based on current lane and action (left or right).
-  void ChangeLane( const LANE_ACTION_T action, LANES_T &lane );
+  void ChangeLane( const LANE_ACTION_T action, LANES_T &lane , queue<double> &lane_changes );
 
   // Helper function to update previous path x vector.
   void set_previous_path_x ( vector<double> v ) 
@@ -99,6 +109,9 @@ public:
 
   // Transform from Frenet s,d coordinates to Cartesian x,y
   vector<double> FrenetToCartesian( const double s, const double d );
+
+  // Transform from Cartesian x,y to Frenet s,d
+  vector<double> CartesianToFrenet( const double x, const double y );
 
   // Calculate the closest waypoint 
   int ClosestWaypoint( const double x, const double y );

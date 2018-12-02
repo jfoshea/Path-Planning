@@ -1,7 +1,14 @@
 #include <iostream>
 #include <fstream>
+#include "Eigen-3.3/Eigen/Dense"
+#include "Eigen-3.3/Eigen/Core"
+#include "Eigen-3.3/Eigen/QR"
+#include "Eigen-3.3/Eigen/LU"
 #include "path_planner.h"
 #include "spline.h"
+
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
 using namespace std;
 
@@ -51,6 +58,64 @@ void PathPlanner::Init( )
 }
 
 //=============================================================================
+//  @brief  JMT()
+//          Calculate Jerk Minimized Trajectory 
+//
+//  @param  start and end vectors 
+//
+//  @return jmt coefficients 
+//=============================================================================
+vector<double> PathPlanner::JMT(vector< double> start, vector <double> end, double T)
+{
+    /*
+    Calculate the Jerk Minimizing Trajectory that connects the initial state
+    to the final state in time T.
+
+    INPUTS
+
+    start - the vehicles start location given as a length three array
+        corresponding to initial values of [s, s_dot, s_double_dot]
+
+    end   - the desired end state for vehicle. Like "start" this is a
+        length three array.
+
+    T     - The duration, in seconds, over which this maneuver should occur.
+
+    OUTPUT 
+    an array of length 6, each value corresponding to a coefficent in the polynomial 
+    s(t) = a_0 + a_1 * t + a_2 * t**2 + a_3 * t**3 + a_4 * t**4 + a_5 * t**5
+
+    EXAMPLE
+
+    > JMT( [0, 10, 0], [10, 10, 0], 1)
+    [0.0, 10.0, 0.0, 0.0, 0.0, 0.0]
+    */
+    //return {1,2,3,4,5,6};
+
+  MatrixXd A = MatrixXd(3, 3);
+	A << T*T*T, T*T*T*T, T*T*T*T*T,
+			    3*T*T, 4*T*T*T,5*T*T*T*T,
+			    6*T, 12*T*T, 20*T*T*T;
+		
+	MatrixXd B = MatrixXd(3,1);	    
+	B << end[0]-(start[0]+start[1]*T+.5*start[2]*T*T),
+			    end[1]-(start[1]+start[2]*T),
+			    end[2]-start[2];
+			    
+	MatrixXd Ai = A.inverse();
+	
+	MatrixXd C = Ai*B;
+	
+	vector <double> result = {start[0], start[1], .5*start[2]};
+	for(int i = 0; i < C.size(); i++)
+	{
+	    result.push_back(C.data()[i]);
+	}
+
+  return result;
+}
+
+//=============================================================================
 //  @brief  CalculateLane()
 //          Calculate lane from sensor fusion data
 //
@@ -83,6 +148,31 @@ LANES_T PathPlanner::CalculateLane( const double d )
 }
 
 //=============================================================================
+//  @brief  CalculateLaneOffset()
+//          Calculate d offset for lane
+//
+//  @param   LANES_T lane 
+//
+//  @return d offset for lane 
+//=============================================================================
+double PathPlanner::CalculateLaneOffset( const LANES_T lane )
+{
+  double offset = 0.0;
+
+  switch( lane )
+  {
+    case LeftLane:
+    case MiddleLane:
+    case RightLane:
+        offset = ( lane * 4.0 ) + 2.0;
+    default:
+        offset = -1.0;
+  }
+
+  return offset;
+}
+
+//=============================================================================
 //  @brief  ChangeLane()
 //          Change lane left or right
 //
@@ -91,19 +181,25 @@ LANES_T PathPlanner::CalculateLane( const double d )
 //
 //  @return void 
 //=============================================================================
-void PathPlanner::ChangeLane( const LANE_ACTION_T action, LANES_T &lane )
+void PathPlanner::ChangeLane( const LANE_ACTION_T action, LANES_T &lane , queue<double> &lane_changes )
 {
+  double current_lane_offset, changed_lane_offset;
+
   switch( action )
   {
     case SHIFT_LEFT:
       if( lane == MiddleLane )
       {
+        current_lane_offset = CalculateLaneOffset( lane );
         lane = LeftLane;
+        changed_lane_offset = CalculateLaneOffset( lane );
         cout << "Collision Warning: Left Lane <-- Middle Lane " << endl; 
       }
       else if( lane == RightLane )
       {
+        current_lane_offset = CalculateLaneOffset( lane );
         lane = MiddleLane;
+        changed_lane_offset = CalculateLaneOffset( lane );
         cout << "Collision Warning: Middle Lane <-- Right Lane " << endl; 
       }
       break;
@@ -111,18 +207,38 @@ void PathPlanner::ChangeLane( const LANE_ACTION_T action, LANES_T &lane )
     case SHIFT_RIGHT:
       if( lane == LeftLane )
       {
+        current_lane_offset = CalculateLaneOffset( lane );
         lane = MiddleLane;
+        changed_lane_offset = CalculateLaneOffset( lane );
         cout << "Collision Warning: Left Lane --> Middle Lane " << endl; 
       }
       else if( lane == MiddleLane )
       {
+        current_lane_offset = CalculateLaneOffset( lane );
         lane = RightLane;
+        changed_lane_offset = CalculateLaneOffset( lane );
         cout << "Collision Warning: Middle Lane --> Right Lane " << endl; 
       }
       break;
 
     default:
       break;
+  }
+
+  vector<double> start_offset = { current_lane_offset, 0.0, 0.0 };
+  vector<double> end_offset = { changed_lane_offset, 0.0, 0.0 };
+
+  vector<double> jmt = JMT( start_offset, end_offset, T );
+
+  for( double t = TIME_INCREMENT; t <= T; t += TIME_INCREMENT )
+  {
+    double offset = 0.0;
+    for( int i = 0; i < jmt.size(); i++) 
+    {
+      offset += jmt[i] * pow( t, i );
+    }
+
+    lane_changes.push(offset);
   }
 }
 
@@ -343,15 +459,13 @@ void PathPlanner::Navigate( LANES_T &current_lane )
     //
     ////////////////////////////////////////////////////////////////////////////
     
-    if( ( car_detected_on_right == false ) && 
-        ( ( current_lane == LeftLane ) || ( current_lane == MiddleLane ) ) ) 
+    if( ( car_detected_on_right == false ) && ( ( current_lane == LeftLane ) || ( current_lane == MiddleLane ) ) ) 
     {
-      ChangeLane( SHIFT_RIGHT, current_lane );
+      ChangeLane( SHIFT_RIGHT, current_lane, lane_changes );
     } 
-    else if( ( car_detected_on_left == false ) && 
-             ( ( current_lane == MiddleLane ) || ( current_lane == RightLane ) ) )
+    else if( ( car_detected_on_left == false ) && ( ( current_lane == MiddleLane ) || ( current_lane == RightLane ) ) )
     {
-      ChangeLane( SHIFT_LEFT, current_lane );
+      ChangeLane( SHIFT_LEFT, current_lane, lane_changes );
     } 
     else 
     {
@@ -452,19 +566,43 @@ void PathPlanner::UpdatePath( vector<double> &next_x_vals,
   }
 
   // Calculate spline points to travel at desired reference velocity
-  double target_x = 30.0;
+  double target_x = 30.0; // 30 meters ahead
   double target_y = spline_interpolation( target_x );
-
   double target_dist = sqrt( target_x*target_x + target_y*target_y );
   double x_add_on = 0;
+
+  double offset1 = current_lane * 4 + 2;
+  double offset2 = current_lane * 4 + 2;
+	if (!lane_changes.empty()) 
+  {
+    offset1 = lane_changes.front();
+    lane_changes.pop();
+    if (!lane_changes.empty()) 
+    {
+      offset2 = lane_changes.front();
+    }
+  }
+
+  double offset_velocity = abs( offset1 - offset2 );
+  double ref_velocity;
+  if (offset_velocity > speed) 
+  {
+    ref_velocity = 0;
+  }
+  else
+  {
+    ref_velocity = sqrt(speed*speed - offset_velocity*offset_velocity);
+  }
+
+  double N = ( target_dist / ( .02 * ref_velocity / 2.24 ) );
+  double x_step = target_x / N;
 
   // Fill up the rest of our path planner after filling it with previous points,
   // here we will always output 50 ponts
   
   for( int i = 1; i <= 50 - prev_size; i++ ) 
   {
-    double N = ( target_dist / ( .02 * speed / 2.24 ) );
-    double x_point = x_add_on + ( target_x ) / N;
+    double x_point = x_add_on + x_step;
     double y_point = spline_interpolation( x_point );
     x_add_on = x_point;
     double x_ref = x_point;
