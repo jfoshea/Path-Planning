@@ -32,7 +32,7 @@ public:
  
   // Constant Defines
   const double ACCELERATION_RATE = 0.224;
-  const double DEACCELERATION_RATE = ( ACCELERATION_RATE * 8 );
+  const double DEACCELERATION_RATE = ( ACCELERATION_RATE * 4 );
   const double SPEED_LIMIT = 49.5;
   const double ALLOWED_DISTANCE = 30.0;
   const double TIME_INCREMENT = 0.02;

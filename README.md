@@ -63,7 +63,7 @@ Collision Avoidance Mechanisms:
 2. Shift one lane to the left if the car is in the right or middle lanes and no cars are detected on the left lane.
 3. If a lane change can not be made at this moment in time, the car needs to slow down to avoid a collision. The deacceleration rate is higher than the normal acceleration rate to help prevent collisions by sudden lane shifts of other cars in close proximity in the new lane.
 
-Here are the prototypes for `CalculateLane()`, and `ChangeLane()`. The code can be found in path_planner.cpp on lines 61 and 94 respectively.
+Here are the prototypes for `CalculateLane()`, and `ChangeLane()`. The code can be found in path_planner.cpp.
 
 ```C++
 LANES_T PathPlanner::CalculateLane( const double d )
@@ -81,7 +81,7 @@ Path planning decisions will monitor the following state changes. The state chan
 
 
 #### UpdatePath()
-The `UpdatePath()` class function does the work of generating new waypoints which are generated from the current position of the car using the frenet coordinates. The current frenet coordinates of the car are then used and extrapolate the path for next 90 meters as illustrated below. The coordinates are then converted to global x,y coordinates and the to the local coordinate of the car. The cublic spline is then used to fit a spline on the waypoints. The points are merged to the waypoints on previous_path_x, previous_path_y by pushing them on the next_x_vals, next_y_vals vectors.
+The `UpdatePath()` class function does the work of generating new waypoints which are generated from the current position of the car using the frenet coordinates. The current frenet coordinates of the car are then used and extrapolate the path for next 90 meters as illustrated below. The coordinates are then converted to global x,y coordinates and the to the local coordinate of the car. The cublic spline is then used to fit a spline on the waypoints. The points are merged to the waypoints on previous_path_x, previous_path_y by pushing them on the next_x_vals, next_y_vals vectors. A Jerk Minimizing Trajectory (JMT) is used generate smooth trajectories during lane changes, where the jerk is minimized by solving a quintic polynomial.
 
 ```C++
 vector<double> next_wp0 = FrenetToCartesian( (car_s + 30), (2 + 4 * lane) );
